@@ -1,18 +1,13 @@
-import 'dart:convert';
-import 'dart:math';
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_app/voice_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_chat_types/flutter_chat_types.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// For the testing purposes, you should probably use https://pub.dev/packages/uuid.
-String randomString() {
-  final random = Random.secure();
-  final values = List<int>.generate(16, (i) => random.nextInt(255));
-  return base64UrlEncode(values);
-}
-
-void main() {
+void main() async {
+  await dotenv.load();
   runApp(const MyApp());
 }
 
@@ -21,45 +16,103 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const MaterialApp(
-        home: MyHomePage(),
-      );
+      home: ChatPage(),
+    );
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ChatPage> createState() => _ChatPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _ChatPageState extends State<ChatPage> {
+  static const _greeting = "Hello, how can i help you today?";
+
+  static const _user = types.User(id: 'user');
+
+  static const _chatGpt = types.User(id: 'assistant');
+
+  static const _client = types.User(id: 'client');
+
   final List<types.Message> _messages = [];
-  final _user = const types.User(id: '82091008-a484-4a89-ae75-a22bf8d6f3ac');
 
+  final List<Map<String, String>> prompts = [];
+
+  late OpenAI _openAi;
+
+  // Init OpenAI in here because global init produce error (probally due to lazy initialization)
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: Chat(
-          messages: _messages,
-          onSendPressed: _handleSendPressed,
-          user: _user,
-          customBottomWidget: VoiceInput(onSendButtonPressed: _handleSendPressed, onVoiceButtonPressed: () => print("voice")),
-        ),
-      );
-
-  void _addMessage(types.Message message) {
-    setState(() {
-      _messages.insert(0, message);
-    });
-  }
-
-  void _handleSendPressed(types.PartialText message) {
-    final textMessage = types.TextMessage(
-      author: _user,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: randomString(),
-      text: message.text,
+  void initState() {
+    _openAi = OpenAI.instance.build(
+      token: dotenv.env["api_key"],
+      baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 90)),
+      isLog: true
     );
 
-    _addMessage(textMessage);
+    _messages.insert(0, _buildMessage(_greeting, _chatGpt));
+    _addPromt(_greeting, _chatGpt);
+
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+    Scaffold(
+      body: Chat(
+        messages: _messages,
+        onSendPressed: _handleSendPressed,
+        user: _user,
+        customBottomWidget: VoiceInput(onSendButtonPressed: _handleSendPressed, onVoiceButtonPressed: () => print("voice")),
+      ),
+    );
+
+  void _handleSendPressed(types.PartialText message) async {
+    _addPromt(message.text, _user);
+
+    setState(() {
+      _messages.insertAll(0, [
+        _buildMessage("_chatGPT is typing..._", _client),
+        _buildMessage(message.text, _user)
+      ]);
+    });
+
+    final request = ChatCompleteText(
+      maxToken: 400,
+      messages: prompts,
+      model: ChatModel.ChatGptTurbo0301Model,
+    );
+
+    try {
+      final response = await _openAi.onChatCompletion(request: request);
+      final responseText = response!.choices[0].message!.content;
+      _replaceLastMessage(responseText.replaceAll("```", "`"), _chatGpt);
+      _addPromt(responseText, _chatGpt);
+    }
+    catch (error) {
+      print(error);
+      _replaceLastMessage("Error with contacting the server, please try again later", _client);
+    }
+  }
+
+  void _addPromt(String text, User author) {
+    prompts.add({"role": author.id, "content": text});
+  }
+
+  void _replaceLastMessage(String text, User author) {
+    setState(() => _messages[0] = _buildMessage(text, author));
+  }
+
+  types.Message _buildMessage(String text, User author) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final textMessage = types.TextMessage(
+      author: author,
+      createdAt: now,
+      id: now.toString(),
+      text: text,
+    );
+
+    return textMessage;
   }
 }
