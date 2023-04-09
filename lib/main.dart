@@ -5,6 +5,7 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_types/flutter_chat_types.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 void main() async {
   await dotenv.load();
@@ -40,6 +41,8 @@ class _ChatPageState extends State<ChatPage> {
 
   final List<Map<String, String>> prompts = [];
 
+  final FlutterTts tts = FlutterTts();
+
   late OpenAI _openAi;
 
   // Init OpenAI in here because global init produce error (probally due to lazy initialization)
@@ -53,6 +56,7 @@ class _ChatPageState extends State<ChatPage> {
 
     _messages.insert(0, _buildMessage(_greeting, _chatGpt));
     _addPromt(_greeting, _chatGpt);
+    tts.setSpeechRate(0.75);
 
     super.initState();
   }
@@ -61,14 +65,15 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) =>
     Scaffold(
       body: Chat(
+        theme: const DarkChatTheme(),
         messages: _messages,
-        onSendPressed: _handleSendPressed,
+        onSendPressed: _onSendButtonPressed,
         user: _user,
-        customBottomWidget: VoiceInput(onSendButtonPressed: _handleSendPressed, onVoiceButtonPressed: () => print("voice")),
+        customBottomWidget: VoiceInput(onSendButtonPressed: _onSendButtonPressed, onVoiceButtonPressed: () => print("voice")),
       ),
     );
 
-  void _handleSendPressed(types.PartialText message) async {
+  void _onSendButtonPressed(types.PartialText message) async {
     _addPromt(message.text, _user);
 
     setState(() {
@@ -87,6 +92,8 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final response = await _openAi.onChatCompletion(request: request);
       final responseText = response!.choices[0].message!.content;
+      await tts.stop();
+      tts.speak(responseText);
       _replaceLastMessage(responseText.replaceAll("```", "`"), _chatGpt);
       _addPromt(responseText, _chatGpt);
     }

@@ -16,14 +16,14 @@ class VoiceInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black,
+      color: const Color(0xff2b2250),
       child: Row(
         children: [
           Expanded(child: Input(onSendPressed: onSendButtonPressed)),
           SizedBox(
             height: 64,
             child: Material(
-              color: Colors.black,
+              color: const Color(0xff2b2250),
               child: Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: IconButton(
