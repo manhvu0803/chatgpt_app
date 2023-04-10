@@ -1,3 +1,4 @@
 # chatgpt_app
-
-A new Flutter project.
+A chatbot app using GPT 3.5 and Flutter
+## Demo video
+## Playstore link
