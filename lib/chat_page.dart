@@ -71,7 +71,7 @@ class _ChatPageState extends State<ChatPage> {
       chat: _chat,
       message: message,
       messageWidth: (messageWidth as int).toDouble(),
-      onTtsPressed: () => _speak(message.metadata?["text"])
+      tts: tts
     );
   }
 
@@ -94,7 +94,6 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final response = await _openAi.onChatCompletion(request: request);
       final responseText = response!.choices[0].message!.content;
-      _speak(responseText);
       _replaceLastMessage(responseText.replaceAll("```", "`"), _chatGpt, _buildResponse);
       _addPromt(responseText, _chatGpt);
     }
