@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_app/prompt.dart';
+import 'package:chatgpt_app/setting_page.dart';
 import 'package:chatgpt_app/speech_message.dart';
 import 'package:chatgpt_app/voice_input.dart';
 import 'package:flutter/material.dart';
@@ -53,8 +54,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   void _readSavedConversation() async {
+    prompts.clear();
     final prefs = await SharedPreferences.getInstance();
-    var jsons = jsonDecode(prefs.getString("conversation") ?? '[]') as List;
+    var jsons = [];
+
+    try {
+      jsons = jsonDecode(prefs.getString("conversation") ?? '[]') as List;
+    }
+    catch (error) {
+      print(error);
+    }
 
     var emptyMessage = const types.CustomMessage(author: _client, id: "");
     _messages = List.filled(jsons.length, emptyMessage, growable: true);
@@ -113,6 +122,17 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Chatterbot"),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => const SettingPage()))
+              .then((value) => _readSavedConversation()),
+            icon: const Icon(Icons.settings)
+          )
+        ],
+      ),
       body: Chat(
         theme: const DarkChatTheme(),
         messages: _messages,

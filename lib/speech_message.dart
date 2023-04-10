@@ -10,6 +10,8 @@ class SpeechMessage extends StatefulWidget {
 
   final double messageWidth;
 
+  final bool speakImmediately;
+
   String get text => message.metadata?["text"] ?? "Error building message";
 
   const SpeechMessage({
@@ -17,7 +19,14 @@ class SpeechMessage extends StatefulWidget {
     required this.message,
     required this.tts,
     required this.messageWidth
-  });
+  }) : speakImmediately = false;
+
+  const SpeechMessage.speak({
+    super.key,
+    required this.message,
+    required this.tts,
+    required this.messageWidth
+  }) : speakImmediately = true;
 
   @override
   State<StatefulWidget> createState() => _SpeechMessageState();
@@ -25,6 +34,15 @@ class SpeechMessage extends StatefulWidget {
 
 class _SpeechMessageState extends State<SpeechMessage> {
   bool _isSpeaking = false;
+
+  @override
+  void initState() {
+    if (widget.speakImmediately) {
+      _handleTtsPressed();
+    }
+
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
