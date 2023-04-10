@@ -65,11 +65,9 @@ class _SpeechMessageState extends State<SpeechMessage> {
     await widget.tts.stop();
 
     if (!_isSpeaking) {
-      print("start speaking");
       setState(() => _isSpeaking = true);
       await widget.tts.awaitSpeakCompletion(true);
       await widget.tts.speak(widget.text);
-      print("stopped speaking");
       setState(() => _isSpeaking = false);
     }
     else {
