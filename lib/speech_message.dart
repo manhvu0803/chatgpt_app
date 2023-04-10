@@ -4,8 +4,6 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_tts/flutter_tts.dart';
 
 class SpeechMessage extends StatefulWidget {
-  final Chat chat;
-
   final types.CustomMessage message;
 
   final FlutterTts tts;
@@ -16,7 +14,6 @@ class SpeechMessage extends StatefulWidget {
 
   const SpeechMessage({
     super.key,
-    required this.chat,
     required this.message,
     required this.tts,
     required this.messageWidth
@@ -35,15 +32,15 @@ class _SpeechMessageState extends State<SpeechMessage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextMessage(
-          emojiEnlargementBehavior: widget.chat.emojiEnlargementBehavior,
-          hideBackgroundOnEmojiMessages: widget.chat.hideBackgroundOnEmojiMessages,
+          emojiEnlargementBehavior: EmojiEnlargementBehavior.single,
+          hideBackgroundOnEmojiMessages: true,
           message: types.TextMessage(
             author: widget.message.author,
             id: widget.message.id,
             text: widget.text
           ),
           showName: false,
-          usePreviewData: widget.chat.usePreviewData
+          usePreviewData: false
         ),
         SizedBox(
           width: widget.messageWidth,
